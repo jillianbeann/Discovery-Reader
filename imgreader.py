@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+import concurrent
 import os
 import sys
 import time
 import img2pdf
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor
 import re
 
 
@@ -43,7 +44,7 @@ def read_files_better():
     with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers based on your system's capabilities
         future_to_directory = {executor.submit(process_files, os.path.join(directory, subdirectory)): subdirectory for
                                subdirectory in os.listdir(directory)}
-        for future in ThreadPoolExecutor.futures.as_completed(future_to_directory):
+        for future in concurrent.futures.as_completed(future_to_directory):
             directory = future_to_directory[future]
             try:
                 created = future.result()
