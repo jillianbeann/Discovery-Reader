@@ -1,45 +1,59 @@
 #!/usr/bin/env python3
 import os
 import sys
+import time
 import img2pdf
+from concurrent.futures import ThreadPoolExecutor
+import re
 
 
 def extract_number(filename):
-    return int(''.join(filter(str.isdigit, filename)))
+    # Extract numeric value from the end of the filename
+    match = re.search(r'(\d+)\.\w+$', filename)  # Match digits before the file extension
+    if match:
+        return int(match.group(1))
+    return sys.maxsize  # Return maximum value to ensure unmatched files are placed at the end
+
+
+def process_files(directory):
+    created = []
+    for dirpath, _, filenames in os.walk(directory):
+        imgs = []
+        for fname in filenames:
+            if fname.startswith(".") or not (fname.endswith(".jpg") or fname.endswith(".tif")):
+                print("Skipped file:", os.path.join(dirpath, fname))
+                continue
+            imgs.append(os.path.join(dirpath, fname))
+        if imgs:
+            imgs = sorted(imgs, key=lambda x: extract_number(os.path.basename(x)))
+           # filename = os.path.basename(dirpath) + '.pdf'
+            output_path = os.path.join(directory, os.path.basename(dirpath) + '.pdf')
+            created.append(output_path)
+            with open(output_path, "wb") as f:
+                f.write(img2pdf.convert(imgs))
+    return created
+
 
 def read_files_better():
-    #dir = '/Users/jillianhandrahan/
-    dir = '/Volumes/PHILIPS UFD'
-    # convert all files ending in .jpg inside a directory
+    start = time.time()
+    directory = '/Volumes/PHILIPS UFD'
     print("Welcome. Some files may be skipped. Normal skipped files: .DS_Store, IMG folder names like IMG001")
-    os.chdir(dir)
-    # dir = os.getcwd() + '/IMAGES'
-    print("Current working directory: ", dir)
-    created = []
+    print("Current working directory:", directory)
 
-    for dirpath, dirname, filenames in os.walk(dir):
-        imgs = []
-        for fname in os.listdir(dirpath):
-            if (not fname.startswith(".")) and (fname.endswith(".jpg") or fname.endswith(".tif")):
-                print("filename: ", fname)
-                path = os.path.join(dirpath, fname)
-                if os.path.isdir(path):
-                    continue
-                imgs.append(path)
-            else:
-                print("Skipped a file. File name: " + fname)
-                continue
-        imgs = sorted(imgs, key=extract_number)
-        if len(imgs) != 0:
-            filename = os.path.basename(os.path.normpath(dirpath)) + '.pdf'
-            created.append(filename)
-            with open(filename, "wb") as f:
-                f.write(img2pdf.convert(imgs))
-    print("SUCCESS: " + str(len(created)) + " PDF files created: ")
-    for name in created:
-        print(name)
+    with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers based on your system's capabilities
+        future_to_directory = {executor.submit(process_files, os.path.join(directory, subdirectory)): subdirectory for
+                               subdirectory in os.listdir(directory)}
+        for future in ThreadPoolExecutor.futures.as_completed(future_to_directory):
+            directory = future_to_directory[future]
+            try:
+                created = future.result()
+                end = time.time()
+                print("SUCCESS:", len(created), "PDF files created in", directory, "in", end-start, "seconds")
+                for name in created:
+                    print(name)
+            except Exception as exc:
+                print(f"ERROR: {directory} generated an exception: {exc}")
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     read_files_better()
