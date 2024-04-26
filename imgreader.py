@@ -8,21 +8,19 @@ def extract_number(filename):
     return int(''.join(filter(str.isdigit, filename)))
 
 def read_files_better():
-    #dir = '/Users/jillianhandrahan/steiner_001_images'
+    #dir = '/Users/jillianhandrahan/
     dir = '/Volumes/PHILIPS UFD'
     # convert all files ending in .jpg inside a directory
     print("Welcome. Some files may be skipped. Normal skipped files: .DS_Store, IMG folder names like IMG001")
     os.chdir(dir)
-    # dirname = os.getcwd() + '/IMAGES'
-    # print("Current working directory:", dirname)
+    # dir = os.getcwd() + '/IMAGES'
     print("Current working directory: ", dir)
     created = []
 
     for dirpath, dirname, filenames in os.walk(dir):
         imgs = []
         for fname in os.listdir(dirpath):
-            if (not fname.startswith(".")) and fname != ".DS_Store" \
-                    and (fname.endswith(".jpg") or fname.endswith(".tif")):
+            if (not fname.startswith(".")) and (fname.endswith(".jpg") or fname.endswith(".tif")):
                 print("filename: ", fname)
                 path = os.path.join(dirpath, fname)
                 if os.path.isdir(path):
